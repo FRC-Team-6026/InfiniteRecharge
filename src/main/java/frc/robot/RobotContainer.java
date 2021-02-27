@@ -6,6 +6,7 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
+import frc.robot.commands.BarrelRaceCommand;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.commands.SampleTrajectoryCommand;
 import frc.robot.subsystems.DriveSubsystem;
@@ -23,6 +24,7 @@ public class RobotContainer {
   private final DriveSubsystem _drive = new DriveSubsystem();
 
   private final SampleTrajectoryCommand _sampleTrajectory = new SampleTrajectoryCommand();
+  private final BarrelRaceCommand _barrelRaceCommand = new BarrelRaceCommand();
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -45,7 +47,7 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An ExampleCommand will run in autonomous
-    return _sampleTrajectory.getCommand(_drive);
+    return _barrelRaceCommand.getCommand(_drive);
   }
 
   public void arcadeDrive(double forward, double rotation) {
