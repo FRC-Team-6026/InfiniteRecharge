@@ -2,8 +2,8 @@ package frc.robot.subsystems;
 
 import com.analog.adis16448.frc.ADIS16448_IMU;
 import com.revrobotics.CANEncoder;
-import com.revrobotics.CANPIDController;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
@@ -11,31 +11,58 @@ import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveWheelSpeeds;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 
 public class DriveSubsystem extends SubsystemBase
 {
     private final CANSparkMax _left1 = new CANSparkMax(9, MotorType.kBrushless);
     private final CANSparkMax _left2 = new CANSparkMax(10, MotorType.kBrushless);
-    private final CANPIDController _leftController = _left1.getPIDController();
-    private final CANEncoder _leftEncoder = _left1.getEncoder();
-    private final SpeedControllerGroup _leftGroup = new SpeedControllerGroup(_left1, _left2);
+    private final CANEncoder _leftEncoder;
+    private final SpeedControllerGroup _leftGroup;
 
     private final CANSparkMax _right1 = new CANSparkMax(8, MotorType.kBrushless);
     private final CANSparkMax _right2 = new CANSparkMax(7, MotorType.kBrushless);
-    private final CANPIDController _rightController = _right1.getPIDController();
-    private final CANEncoder _rightEncoder = _right1.getEncoder();
-    private final SpeedControllerGroup _rightGroup = new SpeedControllerGroup(_right1, _right2);
+    private final CANEncoder _rightEncoder;
+    private final SpeedControllerGroup _rightGroup;
 
-    private final DifferentialDrive _drive = new DifferentialDrive(_leftGroup, _rightGroup);
+    private final DifferentialDrive _drive;
 
     private final ADIS16448_IMU _imu = new ADIS16448_IMU();
 
     private final DifferentialDriveOdometry _odometry = new DifferentialDriveOdometry(_imu.getRotation2d());
 
+    public DriveSubsystem() {
+        setupSparkMax(_left1, false);
+        setupSparkMax(_left2, false);
+        setupSparkMax(_right1, false);
+        setupSparkMax(_right2, false);
+        _leftGroup = new SpeedControllerGroup(_left1, _left2);
+        _rightGroup = new SpeedControllerGroup(_right1, _right2);
+        _drive = new DifferentialDrive(_leftGroup, _rightGroup);
+
+        _leftEncoder = _left1.getEncoder();
+        _rightEncoder = _right1.getEncoder();
+
+        _leftEncoder.setPositionConversionFactor(Constants.kMetersPerMotorRevolution);
+        _leftEncoder.setVelocityConversionFactor(Constants.kMetersPerSecondPerRPM);
+
+        _rightEncoder.setPositionConversionFactor(Constants.kMetersPerMotorRevolution);
+        _rightEncoder.setVelocityConversionFactor(Constants.kMetersPerSecondPerRPM);
+
+        resetEncoders();
+    }
+
     @Override
     public void periodic() {
-        _odometry.update(_imu.getRotation2d(), _leftEncoder.getPosition(), _rightEncoder.getPosition());
+        var leftEncoder = _leftEncoder.getPosition();
+        var rightEncoder = -_rightEncoder.getPosition();
+        var rotation = _imu.getRotation2d();
+        _odometry.update(rotation, leftEncoder, rightEncoder);
+        SmartDashboard.putNumber("leftEncoder", leftEncoder);
+        SmartDashboard.putNumber("rightEncoder", rightEncoder);
+        SmartDashboard.putNumber("rotation", rotation.getDegrees());
     }
 
     /**
@@ -53,7 +80,7 @@ public class DriveSubsystem extends SubsystemBase
      * @return the current wheel speeds.
      */
     public DifferentialDriveWheelSpeeds getWheelSpeeds() {
-        return new DifferentialDriveWheelSpeeds(_leftEncoder.getVelocity(), _rightEncoder.getVelocity());
+        return new DifferentialDriveWheelSpeeds(_leftEncoder.getVelocity(), -_rightEncoder.getVelocity());
     }
 
     public void resetEncoders() {
@@ -99,7 +126,7 @@ public class DriveSubsystem extends SubsystemBase
      * @return the average of the two encoder positions.
      */
     public double getAverageEncoderDistance() {
-        return (_leftEncoder.getPosition() + _rightEncoder.getPosition()) / 2.0;
+        return (_leftEncoder.getPosition() - _rightEncoder.getPosition()) / 2.0;
     }
 
     /**
@@ -125,5 +152,21 @@ public class DriveSubsystem extends SubsystemBase
      */
     public double getTurnRate() {
         return -_imu.getRate();
+    }
+
+    /**
+   * Sets the max output of the drive.  Useful for scaling the drive to drive more slowly.
+   *
+   * @param maxOutput the maximum output to which the drive will be constrained
+   */
+    public void setMaxOutput(double maxOutput) {
+       _drive.setMaxOutput(maxOutput);
+    }
+
+    private void setupSparkMax(CANSparkMax controller, boolean inverted)
+    {
+        controller.restoreFactoryDefaults();
+        controller.setIdleMode(IdleMode.kBrake);
+        controller.setInverted(inverted);
     }
 }
