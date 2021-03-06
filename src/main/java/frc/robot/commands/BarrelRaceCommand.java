@@ -19,11 +19,11 @@ import edu.wpi.first.wpilibj.trajectory.constraint.DifferentialDriveVoltageConst
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.RamseteCommand;
 import frc.robot.Constants;
-import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.Drive;
 
 public class BarrelRaceCommand {
     
-    public Command getCommand(DriveSubsystem drive) {
+    public Command getCommand(Drive drive) {
         // Create a voltage constraint to ensure we don't accelerate too fast
         var autoVoltageConstraint =
         new DifferentialDriveVoltageConstraint(

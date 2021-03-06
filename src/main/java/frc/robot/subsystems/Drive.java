@@ -15,7 +15,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
-public class DriveSubsystem extends SubsystemBase
+public class Drive extends SubsystemBase
 {
     private final CANSparkMax _left1 = new CANSparkMax(9, MotorType.kBrushless);
     private final CANSparkMax _left2 = new CANSparkMax(10, MotorType.kBrushless);
@@ -33,7 +33,7 @@ public class DriveSubsystem extends SubsystemBase
 
     private final DifferentialDriveOdometry _odometry = new DifferentialDriveOdometry(_imu.getRotation2d());
 
-    public DriveSubsystem() {
+    public Drive() {
         setupSparkMax(_left1, false);
         setupSparkMax(_left2, false);
         setupSparkMax(_right1, false);
