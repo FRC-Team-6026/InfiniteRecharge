@@ -2,7 +2,10 @@ package frc.robot.subsystems;
 
 import com.analog.adis16448.frc.ADIS16448_IMU;
 import com.revrobotics.CANEncoder;
+import com.revrobotics.CANPIDController;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.ControlType;
+import com.revrobotics.CANPIDController.ArbFFUnits;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
@@ -14,17 +17,20 @@ import edu.wpi.first.wpilibj.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import java.util.function.*;
 
 public class Drive extends SubsystemBase
 {
     private final CANSparkMax _left1 = new CANSparkMax(9, MotorType.kBrushless);
     private final CANSparkMax _left2 = new CANSparkMax(10, MotorType.kBrushless);
     private final CANEncoder _leftEncoder;
+    private final CANPIDController _leftPid;
     private final SpeedControllerGroup _leftGroup;
 
     private final CANSparkMax _right1 = new CANSparkMax(8, MotorType.kBrushless);
     private final CANSparkMax _right2 = new CANSparkMax(7, MotorType.kBrushless);
     private final CANEncoder _rightEncoder;
+    private final CANPIDController _rightPid;
     private final SpeedControllerGroup _rightGroup;
 
     private final DifferentialDrive _drive;
@@ -38,12 +44,23 @@ public class Drive extends SubsystemBase
         setupSparkMax(_left2, false);
         setupSparkMax(_right1, false);
         setupSparkMax(_right2, false);
-        _leftGroup = new SpeedControllerGroup(_left1, _left2);
-        _rightGroup = new SpeedControllerGroup(_right1, _right2);
+        _left2.follow(_left1);
+        _right2.follow(_right1);
+        //if we have both controllers in the speed controller group, then I don't think the
+        //follower configuration will work because the controller group will try to control both
+        //motors when only left1 and right1 need to be driven. This allows us to still use the
+        //spark max onboard PID controller to control left1 and right1 and have left2 and right2 follow.
+        _leftPid = _left1.getPIDController();
+        _rightPid = _right1.getPIDController();
+        _leftGroup = new SpeedControllerGroup(_left1);
+        _rightGroup = new SpeedControllerGroup(_right1);
         _drive = new DifferentialDrive(_leftGroup, _rightGroup);
 
         _leftEncoder = _left1.getEncoder();
         _rightEncoder = _right1.getEncoder();
+
+        setupPid(_leftPid, _leftEncoder);
+        setupPid(_rightPid, _rightEncoder);
 
         _leftEncoder.setPositionConversionFactor(Constants.kMetersPerMotorRevolution);
         _leftEncoder.setVelocityConversionFactor(Constants.kMetersPerSecondPerRPM);
@@ -52,6 +69,11 @@ public class Drive extends SubsystemBase
         _rightEncoder.setVelocityConversionFactor(Constants.kMetersPerSecondPerRPM);
 
         resetEncoders();
+
+        _left1.burnFlash();
+        _left2.burnFlash();
+        _right1.burnFlash();
+        _right2.burnFlash();
     }
 
     @Override
@@ -104,8 +126,31 @@ public class Drive extends SubsystemBase
      * @param forward the commanded forward movement
      * @param rotation the commanded rotation
      */
-    public void arcadeDrive(double forward, double rotation){
-        _drive.arcadeDrive(forward, rotation);
+    public void arcadeDrive(DoubleSupplier speedSupplier, DoubleSupplier rotationSupplier) {
+        var speed = speedSupplier.getAsDouble();
+        var rotation = rotationSupplier.getAsDouble();
+
+        var leftLinearRpm = speed * Constants.kMaxRpm;
+        var rightLinearRpm = speed * Constants.kMaxRpm;
+        var leftRotationRpm = rotation * Constants.kRotationDiffRpm;
+        var rightRotationRpm = -rotation * Constants.kRotationDiffRpm;
+
+        var leftVelocityRpm = leftLinearRpm + leftRotationRpm;
+        var rightVelocityRpm = rightLinearRpm + rightRotationRpm;
+
+        //limit velocity to +- kMaxRpm
+        leftVelocityRpm = Math.min(leftVelocityRpm, Constants.kMaxRpm);
+        leftVelocityRpm = Math.max(leftVelocityRpm, -Constants.kMaxRpm);
+        rightVelocityRpm = Math.min(rightVelocityRpm, Constants.kMaxRpm);
+        rightVelocityRpm = Math.max(rightVelocityRpm, -Constants.kMaxRpm);
+
+        var leftFeedForward = leftVelocityRpm * Constants.kvVoltMinutesPerMotorRotation;
+        leftFeedForward = leftFeedForward > 0 ? leftFeedForward + Constants.ksVolts : leftFeedForward - Constants.ksVolts;
+        var rightFeedForward = rightVelocityRpm * Constants.kvVoltMinutesPerMotorRotation;
+        rightFeedForward = rightFeedForward > 0 ? rightFeedForward + Constants.ksVolts : rightFeedForward - Constants.ksVolts;
+
+        _leftPid.setReference(leftVelocityRpm, ControlType.kVelocity, 0, leftFeedForward, ArbFFUnits.kVoltage);
+        _rightPid.setReference(rightVelocityRpm, ControlType.kVelocity, 0, rightFeedForward, ArbFFUnits.kVoltage);
     }
 
     /**
@@ -115,6 +160,11 @@ public class Drive extends SubsystemBase
      * @param rightVolts the commanded right output
      */
     public void tankDriveVolts(double leftVolts, double rightVolts){
+        //switching PID controls to voltage instead of velocity or position controls
+        //so that the controller groups can set the motors to specified voltages.
+        _leftPid.setReference(0, ControlType.kVoltage);
+        _rightPid.setReference(0, ControlType.kVoltage);
+
         _leftGroup.setVoltage(leftVolts);
         _rightGroup.setVoltage(-rightVolts);
         _drive.feed();
@@ -163,10 +213,21 @@ public class Drive extends SubsystemBase
        _drive.setMaxOutput(maxOutput);
     }
 
-    private void setupSparkMax(CANSparkMax controller, boolean inverted)
+    private void setupSparkMax(CANSparkMax motor, boolean inverted)
     {
-        controller.restoreFactoryDefaults();
-        controller.setIdleMode(IdleMode.kBrake);
-        controller.setInverted(inverted);
+        motor.restoreFactoryDefaults();
+        motor.setIdleMode(IdleMode.kBrake);
+        motor.setInverted(inverted);
+    }
+
+    private void setupPid(CANPIDController controller, CANEncoder encoder){
+        controller.setFF(Constants.kFf);
+        controller.setP(Constants.kP);
+        controller.setI(Constants.kI);
+        controller.setD(Constants.kD);
+        controller.setOutputRange(Constants.minOutput, Constants.maxOutput);
+        controller.setSmartMotionMaxVelocity(Constants.kMaxRpm, 0);
+        controller.setSmartMotionMaxAccel(Constants.kMaxAccelRpmPerSec, 0);
+        controller.setFeedbackDevice(encoder);
     }
 }

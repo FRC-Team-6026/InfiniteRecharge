@@ -13,6 +13,11 @@ public class Conveyor extends SubsystemBase {
     private final ColorSensorV3 _colorSensor = new ColorSensorV3(_i2cPort);
     private final VictorSPX _motor = new VictorSPX(2);
 
+    public Conveyor() {
+        super();
+        init();
+    }
+
     public void init(){
         _motor.configFactoryDefault();
     }

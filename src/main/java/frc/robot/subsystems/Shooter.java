@@ -7,8 +7,9 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-public class Shooter {
+public class Shooter extends SubsystemBase {
     private final WPI_TalonSRX _top = new WPI_TalonSRX(4);
     private final WPI_TalonSRX _bottom = new WPI_TalonSRX(3);
     private final Solenoid _flipper = new Solenoid(15, 1);

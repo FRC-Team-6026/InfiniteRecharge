@@ -8,10 +8,13 @@ import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.ControlType;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
 import com.revrobotics.CANPIDController;
 import com.revrobotics.CANEncoder;
 
-public class Lifter{
+public class Lifter extends SubsystemBase {
     private static final double kP = 5e-5;
     private static final double kI = 1e-6;
     private static final double kD = 0;

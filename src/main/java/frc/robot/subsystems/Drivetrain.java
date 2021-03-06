@@ -8,6 +8,10 @@ import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+/**
+ * @deprecated use Drive instead. This class is the old drive train class and will be kept temporarily for reference.
+ */
+@Deprecated
 public class Drivetrain {
     private static final double kGearRatio = 10.71;
     private static final double kWheelDiameterMm = 152.4;
