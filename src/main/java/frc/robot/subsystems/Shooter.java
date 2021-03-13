@@ -7,7 +7,10 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
+import java.util.function.*;
 
 public class Shooter extends SubsystemBase {
     private final WPI_TalonSRX _top = new WPI_TalonSRX(4);
@@ -16,17 +19,20 @@ public class Shooter extends SubsystemBase {
     private final int _pidSlot = 0;
     private final int _timeoutMs = 100;
     private final double _peakOutput = 1;
-    private final double _maxVelocityPulsesPer100ms = 27000;
-    private final double _speedDiff = 2000;
+    private final double _maxVelocityPulsesPer100ms = 30000;
+    private final double _speedDiff = 3000;
     private final double _p = 0.25;
     private final double _i = 0.001;
     private final double _d = 20;
-    private final double _fBottom = 1023/(_maxVelocityPulsesPer100ms);
-    private final double _fTop = 1023/(_maxVelocityPulsesPer100ms - _speedDiff);
+    private final double _fBottom = 1023/(_maxVelocityPulsesPer100ms + _speedDiff);
+    private final double _fTop = 1023/(_maxVelocityPulsesPer100ms);
     private final int _iZone = 300;
     private final double _maxDiff = 1000;
+    private final DoubleSupplier _shooterPower;
 
-    public void init(){
+    public Shooter(DoubleSupplier shooterPower){
+        super();
+        _shooterPower = shooterPower;
         _top.configFactoryDefault();
         _bottom.configFactoryDefault();
 
@@ -65,14 +71,24 @@ public class Shooter extends SubsystemBase {
 
         _top.configClosedloopRamp(0.5, _timeoutMs);
         _bottom.configClosedloopRamp(0.5, _timeoutMs);
+
+        this.setDefaultCommand(new RunCommand(() -> {
+            fire();
+            var power = _shooterPower.getAsDouble();
+            if (power > 0.1)
+                openGate();
+            else if (power < 0.05)
+                closeGate();
+        }, this));
     }
 
     /**
      * Runs the firing mechanism at the set power
      * @param power power output -1 to 1
      */
-    public void fire(double power){
+    public void fire(){
 
+        var power = _shooterPower.getAsDouble();
         var velocities = getVelocities(power);
         _top.set(ControlMode.Velocity, velocities[1]);
         _bottom.set(ControlMode.Velocity, -velocities[0]);
@@ -82,7 +98,11 @@ public class Shooter extends SubsystemBase {
         SmartDashboard.putNumber("Bottom velocity pulses/100ms", _bottom.getSelectedSensorVelocity());
     }
 
-    public boolean isAtSetPower(double power){
+    public boolean isAtSetPower(){
+        var power = _shooterPower.getAsDouble();
+        if (power < 0.1){
+            return false;
+        }
         var velocities = getVelocities(power);
         var feedbackVelocity = _bottom.getSelectedSensorVelocity();
         var feedbackTopVelocity = _top.getSelectedSensorVelocity();

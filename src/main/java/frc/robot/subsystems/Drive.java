@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import java.util.function.*;
@@ -25,25 +26,32 @@ public class Drive extends SubsystemBase
     private final CANSparkMax _left2 = new CANSparkMax(10, MotorType.kBrushless);
     private final CANEncoder _leftEncoder;
     private final CANPIDController _leftPid;
-    private final SpeedControllerGroup _leftGroup;
+    //private final SpeedControllerGroup _leftGroup;
 
     private final CANSparkMax _right1 = new CANSparkMax(8, MotorType.kBrushless);
     private final CANSparkMax _right2 = new CANSparkMax(7, MotorType.kBrushless);
     private final CANEncoder _rightEncoder;
     private final CANPIDController _rightPid;
-    private final SpeedControllerGroup _rightGroup;
+    //private final SpeedControllerGroup _rightGroup;
 
-    private final DifferentialDrive _drive;
+    private final DoubleSupplier _speedSupplier;
+    private final DoubleSupplier _rotationSupplier;
+
+    //private final DifferentialDrive _drive;
 
     private final ADIS16448_IMU _imu = new ADIS16448_IMU();
 
     private final DifferentialDriveOdometry _odometry = new DifferentialDriveOdometry(_imu.getRotation2d());
 
-    public Drive() {
+    public Drive(DoubleSupplier speedSupplier, DoubleSupplier rotationSupplier) {
+        super();
+        _speedSupplier = speedSupplier;
+        _rotationSupplier = rotationSupplier;
+
         setupSparkMax(_left1, false);
         setupSparkMax(_left2, false);
-        setupSparkMax(_right1, false);
-        setupSparkMax(_right2, false);
+        setupSparkMax(_right1, true);
+        setupSparkMax(_right2, true);
         _left2.follow(_left1);
         _right2.follow(_right1);
         //if we have both controllers in the speed controller group, then I don't think the
@@ -52,9 +60,9 @@ public class Drive extends SubsystemBase
         //spark max onboard PID controller to control left1 and right1 and have left2 and right2 follow.
         _leftPid = _left1.getPIDController();
         _rightPid = _right1.getPIDController();
-        _leftGroup = new SpeedControllerGroup(_left1);
-        _rightGroup = new SpeedControllerGroup(_right1);
-        _drive = new DifferentialDrive(_leftGroup, _rightGroup);
+        //_leftGroup = new SpeedControllerGroup(_left1);
+        //_rightGroup = new SpeedControllerGroup(_right1);
+        //_drive = new DifferentialDrive(_leftGroup, _rightGroup);
 
         _leftEncoder = _left1.getEncoder();
         _rightEncoder = _right1.getEncoder();
@@ -74,6 +82,19 @@ public class Drive extends SubsystemBase
         _left2.burnFlash();
         _right1.burnFlash();
         _right2.burnFlash();
+
+        this.setDefaultCommand(new FunctionalCommand(() -> {/*do nothing on init*/},
+          // do arcade drive by default
+          () -> {arcadeDrive();},
+          //when interrupted set PID controls to voltage and default to 0 to stop
+          interrupted ->
+          {
+            _leftPid.setReference(0, ControlType.kVoltage);
+            _rightPid.setReference(0, ControlType.kVoltage);
+          },
+          //never end
+          () -> {return false;},
+          this));
     }
 
     @Override
@@ -126,9 +147,9 @@ public class Drive extends SubsystemBase
      * @param forward the commanded forward movement
      * @param rotation the commanded rotation
      */
-    public void arcadeDrive(DoubleSupplier speedSupplier, DoubleSupplier rotationSupplier) {
-        var speed = speedSupplier.getAsDouble();
-        var rotation = rotationSupplier.getAsDouble();
+    public void arcadeDrive() {
+        var speed = _speedSupplier.getAsDouble();
+        var rotation = _rotationSupplier.getAsDouble();
 
         var leftLinearRpm = speed * Constants.kMaxRpm;
         var rightLinearRpm = speed * Constants.kMaxRpm;
@@ -145,9 +166,13 @@ public class Drive extends SubsystemBase
         rightVelocityRpm = Math.max(rightVelocityRpm, -Constants.kMaxRpm);
 
         var leftFeedForward = leftVelocityRpm * Constants.kvVoltMinutesPerMotorRotation;
-        leftFeedForward = leftFeedForward > 0 ? leftFeedForward + Constants.ksVolts : leftFeedForward - Constants.ksVolts;
+        if (leftFeedForward != 0) {
+          leftFeedForward = leftFeedForward > 0 ? leftFeedForward + Constants.ksVolts : leftFeedForward - Constants.ksVolts;
+        }
         var rightFeedForward = rightVelocityRpm * Constants.kvVoltMinutesPerMotorRotation;
-        rightFeedForward = rightFeedForward > 0 ? rightFeedForward + Constants.ksVolts : rightFeedForward - Constants.ksVolts;
+        if (rightFeedForward != 0) {
+          rightFeedForward = rightFeedForward > 0 ? rightFeedForward + Constants.ksVolts : rightFeedForward - Constants.ksVolts;
+        }
 
         _leftPid.setReference(leftVelocityRpm, ControlType.kVelocity, 0, leftFeedForward, ArbFFUnits.kVoltage);
         _rightPid.setReference(rightVelocityRpm, ControlType.kVelocity, 0, rightFeedForward, ArbFFUnits.kVoltage);
@@ -160,14 +185,9 @@ public class Drive extends SubsystemBase
      * @param rightVolts the commanded right output
      */
     public void tankDriveVolts(double leftVolts, double rightVolts){
-        //switching PID controls to voltage instead of velocity or position controls
-        //so that the controller groups can set the motors to specified voltages.
-        _leftPid.setReference(0, ControlType.kVoltage);
-        _rightPid.setReference(0, ControlType.kVoltage);
-
-        _leftGroup.setVoltage(leftVolts);
-        _rightGroup.setVoltage(-rightVolts);
-        _drive.feed();
+        //_leftGroup.setVoltage(leftVolts);
+        //_rightGroup.setVoltage(-rightVolts);
+        //_drive.feed();
     }
 
     /**
@@ -210,7 +230,7 @@ public class Drive extends SubsystemBase
    * @param maxOutput the maximum output to which the drive will be constrained
    */
     public void setMaxOutput(double maxOutput) {
-       _drive.setMaxOutput(maxOutput);
+       //_drive.setMaxOutput(maxOutput);
     }
 
     private void setupSparkMax(CANSparkMax motor, boolean inverted)

@@ -12,7 +12,8 @@ public class Intake extends SubsystemBase {
     private final Solenoid _arms = new Solenoid(15,0);
     private boolean _isExtended = false;
 
-    public void init(){
+    public Intake(){
+        super();
         _intake.configFactoryDefault();
     }
 
@@ -32,7 +33,7 @@ public class Intake extends SubsystemBase {
      * Run motors of the intake
      */
     public void run(){
-        _intake.set(ControlMode.PercentOutput, 0.4);
+        _intake.set(ControlMode.PercentOutput, 0.6);
     }
 
     /**
