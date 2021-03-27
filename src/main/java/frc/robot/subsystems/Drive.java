@@ -9,8 +9,6 @@ import com.revrobotics.CANPIDController.ArbFFUnits;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
-import edu.wpi.first.wpilibj.SpeedControllerGroup;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.geometry.Pose2d;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.wpilibj.kinematics.DifferentialDriveWheelSpeeds;
@@ -26,18 +24,14 @@ public class Drive extends SubsystemBase
     private final CANSparkMax _left2 = new CANSparkMax(10, MotorType.kBrushless);
     private final CANEncoder _leftEncoder;
     private final CANPIDController _leftPid;
-    //private final SpeedControllerGroup _leftGroup;
 
     private final CANSparkMax _right1 = new CANSparkMax(8, MotorType.kBrushless);
     private final CANSparkMax _right2 = new CANSparkMax(7, MotorType.kBrushless);
     private final CANEncoder _rightEncoder;
     private final CANPIDController _rightPid;
-    //private final SpeedControllerGroup _rightGroup;
 
     private final DoubleSupplier _speedSupplier;
     private final DoubleSupplier _rotationSupplier;
-
-    //private final DifferentialDrive _drive;
 
     private final ADIS16448_IMU _imu = new ADIS16448_IMU();
 
@@ -54,15 +48,9 @@ public class Drive extends SubsystemBase
         setupSparkMax(_right2, true);
         _left2.follow(_left1);
         _right2.follow(_right1);
-        //if we have both controllers in the speed controller group, then I don't think the
-        //follower configuration will work because the controller group will try to control both
-        //motors when only left1 and right1 need to be driven. This allows us to still use the
-        //spark max onboard PID controller to control left1 and right1 and have left2 and right2 follow.
+
         _leftPid = _left1.getPIDController();
         _rightPid = _right1.getPIDController();
-        //_leftGroup = new SpeedControllerGroup(_left1);
-        //_rightGroup = new SpeedControllerGroup(_right1);
-        //_drive = new DifferentialDrive(_leftGroup, _rightGroup);
 
         _leftEncoder = _left1.getEncoder();
         _rightEncoder = _right1.getEncoder();
@@ -185,9 +173,8 @@ public class Drive extends SubsystemBase
      * @param rightVolts the commanded right output
      */
     public void tankDriveVolts(double leftVolts, double rightVolts){
-        //_leftGroup.setVoltage(leftVolts);
-        //_rightGroup.setVoltage(-rightVolts);
-        //_drive.feed();
+        _leftPid.setReference(leftVolts, ControlType.kVoltage);
+        _rightPid.setReference(rightVolts, ControlType.kVoltage);
     }
 
     /**
