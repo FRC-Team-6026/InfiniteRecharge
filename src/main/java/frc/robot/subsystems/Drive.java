@@ -30,8 +30,8 @@ public class Drive extends SubsystemBase
     private final CANEncoder _rightEncoder;
     private final CANPIDController _rightPid;
 
-    private final DoubleSupplier _speedSupplier;
-    private final DoubleSupplier _rotationSupplier;
+    private DoubleSupplier _speedSupplier;
+    private DoubleSupplier _rotationSupplier;
 
     private final ADIS16448_IMU _imu = new ADIS16448_IMU();
 
@@ -88,7 +88,7 @@ public class Drive extends SubsystemBase
     @Override
     public void periodic() {
         var leftEncoder = _leftEncoder.getPosition();
-        var rightEncoder = -_rightEncoder.getPosition();
+        var rightEncoder = _rightEncoder.getPosition();
         var rotation = _imu.getRotation2d();
         _odometry.update(rotation, leftEncoder, rightEncoder);
         SmartDashboard.putNumber("leftEncoder", leftEncoder);
@@ -111,7 +111,7 @@ public class Drive extends SubsystemBase
      * @return the current wheel speeds.
      */
     public DifferentialDriveWheelSpeeds getWheelSpeeds() {
-        return new DifferentialDriveWheelSpeeds(_leftEncoder.getVelocity(), -_rightEncoder.getVelocity());
+        return new DifferentialDriveWheelSpeeds(_leftEncoder.getVelocity(), _rightEncoder.getVelocity());
     }
 
     public void resetEncoders() {
@@ -183,7 +183,7 @@ public class Drive extends SubsystemBase
      * @return the average of the two encoder positions.
      */
     public double getAverageEncoderDistance() {
-        return (_leftEncoder.getPosition() - _rightEncoder.getPosition()) / 2.0;
+        return (_leftEncoder.getPosition() + _rightEncoder.getPosition()) / 2.0;
     }
 
     /**
@@ -211,13 +211,12 @@ public class Drive extends SubsystemBase
         return -_imu.getRate();
     }
 
-    /**
-   * Sets the max output of the drive.  Useful for scaling the drive to drive more slowly.
-   *
-   * @param maxOutput the maximum output to which the drive will be constrained
-   */
-    public void setMaxOutput(double maxOutput) {
-       //_drive.setMaxOutput(maxOutput);
+    public void setSpeedSupplier(DoubleSupplier speedSupplier) {
+        _speedSupplier = speedSupplier;
+    }
+
+    public void setRotationSupplier(DoubleSupplier rotationSupplier) {
+        _rotationSupplier = rotationSupplier;
     }
 
     private void setupSparkMax(CANSparkMax motor, boolean inverted)

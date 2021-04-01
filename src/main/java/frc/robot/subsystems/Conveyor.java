@@ -24,7 +24,7 @@ public class Conveyor extends SubsystemBase {
 
         this.setDefaultCommand(new RunCommand(() ->
         {
-            if (_shooterIsAtSetPower.getAsBoolean()) {
+            if (_shooterIsAtSetPower.getAsBoolean() || isBallInLoadingPosition()) {
                 run(0.4);
             } else {
                 run(0);
@@ -41,7 +41,7 @@ public class Conveyor extends SubsystemBase {
         SmartDashboard.putNumber("green", g);
         SmartDashboard.putNumber("blue", b);
         SmartDashboard.putNumber("proximity", x);
-        if (x > 125 && r > 110 && g > 170){
+        if (x > 130 && r > 180 && g > 300){
             return true;
         }
         return false;

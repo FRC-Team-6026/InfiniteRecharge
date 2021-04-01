@@ -8,15 +8,17 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import frc.robot.commands.BarrelRaceCommand;
+import frc.robot.commands.BouncePathCommand;
 import frc.robot.commands.SampleTrajectoryCommand;
 import frc.robot.subsystems.Conveyor;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.LimelightController;
 import frc.robot.subsystems.Shooter;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import java.util.function.*;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -29,14 +31,18 @@ public class RobotContainer {
   private static final double kUpperDeadband = 0.95;
   private final XboxController _controller = new XboxController(0);
   // The robot's subsystems and commands are defined here...
-  private final Drive _drive = new Drive(() -> filterControllerInputs(-_controller.getY(Hand.kLeft)),
-    () -> filterControllerInputs(_controller.getX(Hand.kRight)));
+  private final DoubleSupplier _xBoxSpeedSupplier = () -> filterControllerInputs(-_controller.getY(Hand.kLeft));
+  private final DoubleSupplier _xBoxRotationSupplier = () -> filterControllerInputs(_controller.getX(Hand.kRight));
+  private final Drive _drive = new Drive(_xBoxSpeedSupplier, _xBoxRotationSupplier);
   private final Shooter _shooter = new Shooter(() -> _controller.getTriggerAxis(Hand.kRight));
   private final Conveyor _conveyor = new Conveyor(() -> _shooter.isAtSetPower());
   private final Intake _intake = new Intake();
+  private final LimelightController _limeLight = new LimelightController();
+  private final DoubleSupplier _limeLightRotationSupplier = () -> _limeLight.trackTarget();
 
   private final SampleTrajectoryCommand _sampleTrajectory = new SampleTrajectoryCommand();
   private final BarrelRaceCommand _barrelRaceCommand = new BarrelRaceCommand();
+  private final BouncePathCommand _bouncePathCommand = new BouncePathCommand();
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -54,9 +60,9 @@ public class RobotContainer {
     var rightBumper = new JoystickButton(_controller, XboxController.Button.kBumperRight.value);
     var leftBumper = new JoystickButton(_controller, XboxController.Button.kBumperLeft.value);
     var aButton = new JoystickButton(_controller, XboxController.Button.kA.value);
+    var startButton = new JoystickButton(_controller, XboxController.Button.kStart.value);
 
-    rightBumper.whenPressed(new InstantCommand(() -> {_conveyor.run(0.3);}, _conveyor), true)
-      .whenReleased(new InstantCommand(() -> {_conveyor.run(0);}, _conveyor));
+    rightBumper.whileActiveOnce(new InstantCommand(() -> {_conveyor.run(0.4);}, _conveyor), true);
 
     leftBumper.whenPressed(new InstantCommand(() -> {_intake.run();}, _intake),true)
       .whenReleased(new InstantCommand(() -> {_intake.stop();}, _intake), true);
@@ -64,6 +70,15 @@ public class RobotContainer {
     aButton.whenPressed(new InstantCommand(() -> {
       _intake.moveArms(!_intake.isExtended());
     }, _intake), true);
+
+    startButton.whenPressed(new InstantCommand(() -> {
+      _limeLight.turnLightOn();
+      _drive.setRotationSupplier(_limeLightRotationSupplier);
+    }), true)
+      .whenReleased(new InstantCommand(() -> {
+        _limeLight.turnLightOff();
+        _drive.setRotationSupplier(_xBoxRotationSupplier);
+      }), true);
   }
 
   /**
@@ -73,7 +88,7 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An ExampleCommand will run in autonomous
-    return _barrelRaceCommand.getCommand(_drive);
+    return _bouncePathCommand.getCommand(_drive);
   }
 
   private static double filterControllerInputs(double input) {
