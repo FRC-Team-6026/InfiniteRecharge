@@ -15,20 +15,16 @@ import frc.robot.Constants;
 import frc.robot.subsystems.Drive;
 
 public class BouncePathCommand {
+    private final Trajectory bounce1 = getTrajectory("paths/output/Bounce1.wpilib.json");
+    private final Trajectory bounce2 = getTrajectory("paths/output/Bounce2.wpilib.json");
+    private final Trajectory bounce3 = getTrajectory("paths/output/Bounce3.wpilib.json");
+    private final Trajectory bounce4 = getTrajectory("paths/output/Bounce4.wpilib.json");
+
+    public BouncePathCommand() {
+        super();
+    }
+
     public Command getCommand(Drive drive) {
-
-        String bounce1Json = "paths/output/Bounce1.wpilib.json";
-        Trajectory bounce1 = getTrajectory(bounce1Json);
-
-        String bounce2Json = "paths/output/Bounce2.wpilib.json";
-        Trajectory bounce2 = getTrajectory(bounce2Json);
-
-        String bounce3Json = "paths/output/Bounce3.wpilib.json";
-        Trajectory bounce3 = getTrajectory(bounce3Json);
-
-        String bounce4Json = "paths/output/Bounce4.wpilib.json";
-        Trajectory bounce4 = getTrajectory(bounce4Json);
-
         var bounce1Ramsete = getRamseteCommand(bounce1, drive);
 
         var bounce2Ramsete = getRamseteCommand(bounce2, drive);
@@ -53,9 +49,9 @@ public class BouncePathCommand {
                         drive.resetOdometry(bounce4.getInitialPose());
                         bounce4Ramsete.andThen(() -> {
                             drive.tankDriveVolts(0, 0);
-                        });
-                    });
-                });
+                        }).execute();;
+                    }).execute();;
+                }).execute();;
             });
     }
 
