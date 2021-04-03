@@ -147,12 +147,6 @@ public class Drive extends SubsystemBase
         var leftVelocityRpm = leftLinearRpm + leftRotationRpm;
         var rightVelocityRpm = rightLinearRpm + rightRotationRpm;
 
-        //limit velocity to +- kMaxRpm
-        leftVelocityRpm = Math.min(leftVelocityRpm, Constants.kMaxRpm);
-        leftVelocityRpm = Math.max(leftVelocityRpm, -Constants.kMaxRpm);
-        rightVelocityRpm = Math.min(rightVelocityRpm, Constants.kMaxRpm);
-        rightVelocityRpm = Math.max(rightVelocityRpm, -Constants.kMaxRpm);
-
         var leftFeedForward = leftVelocityRpm * Constants.kvVoltMinutesPerMotorRotation;
         if (leftFeedForward != 0) {
           leftFeedForward = leftFeedForward > 0 ? leftFeedForward + Constants.ksVolts : leftFeedForward - Constants.ksVolts;

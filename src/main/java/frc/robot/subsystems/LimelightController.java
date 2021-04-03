@@ -9,7 +9,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class LimelightController extends SubsystemBase {
     private final NetworkTableInstance _instance = NetworkTableInstance.getDefault();
     private final NetworkTable _table = _instance.getTable("limelight");
-    private final PIDController _targetPid = new PIDController(0.03, 0, 0);
+    private final PIDController _targetPid = new PIDController(0.04, 0.01, 0);
 
     public void init(){
         _targetPid.setSetpoint(0);
