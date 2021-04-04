@@ -8,9 +8,7 @@ import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.controller.RamseteController;
 import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.trajectory.Trajectory;
-import edu.wpi.first.wpilibj.trajectory.TrajectoryConfig;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryUtil;
-import edu.wpi.first.wpilibj.trajectory.constraint.DifferentialDriveVoltageConstraint;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RamseteCommand;
@@ -18,14 +16,14 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.Constants;
 import frc.robot.subsystems.Drive;
 
-public class BarrelRaceCommand {
+public class SlalomCommand {
 
-    private final Trajectory _barrelPath = getTrajectory("paths/output/BarrelRace.wpilib.json");
+    private final Trajectory _slalomPath = getTrajectory("paths/output/Slalom.wpilib.json");
     
     public Command getCommand(Drive drive) {
 
-        var barrelCommand = new RamseteCommand(
-            _barrelPath,
+        RamseteCommand slalomCommand = new RamseteCommand(
+            _slalomPath,
             drive::getPose,
             new RamseteController(Constants.kRamseteB, Constants.kRamseteZeta),
             new SimpleMotorFeedforward(Constants.ksVolts,
@@ -38,14 +36,16 @@ public class BarrelRaceCommand {
             // RamseteCommand passes volts to the callback
             drive::tankDriveVolts,
             drive
-        ).andThen(() -> drive.tankDriveVolts(0, 0));
+        );
 
-        var resetOdometer = new InstantCommand(() -> {
-            drive.resetOdometry(_barrelPath.getInitialPose());
+        var resetOdometry = new InstantCommand(() -> {
+            drive.resetOdometry(_slalomPath.getInitialPose());
         });
-
-        return new SequentialCommandGroup(resetOdometer,
-        barrelCommand);
+        var slalomAndThen = slalomCommand.andThen(() -> {
+            slalomCommand.andThen(() -> drive.tankDriveVolts(0, 0));
+        });
+        return new SequentialCommandGroup(resetOdometry,
+          slalomAndThen);
     }
 
     private Trajectory getTrajectory(String trajectoryJson) {

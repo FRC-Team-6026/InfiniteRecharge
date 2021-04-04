@@ -7,9 +7,12 @@ package frc.robot;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.commands.BarrelRaceCommand;
 import frc.robot.commands.BouncePathCommand;
 import frc.robot.commands.SampleTrajectoryCommand;
+import frc.robot.commands.SlalomCommand;
 import frc.robot.subsystems.Conveyor;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Intake;
@@ -43,11 +46,19 @@ public class RobotContainer {
   private final SampleTrajectoryCommand _sampleTrajectory = new SampleTrajectoryCommand();
   private final BarrelRaceCommand _barrelRaceCommand = new BarrelRaceCommand();
   private final BouncePathCommand _bouncePathCommand = new BouncePathCommand();
+  private final SlalomCommand _slalomCommand = new SlalomCommand();
+
+  private final SendableChooser<Command> _autoChooser = new SendableChooser<Command>();
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     // Configure the button bindings
     configureButtonBindings();
+    _autoChooser.setDefaultOption("zig zag", _sampleTrajectory.getCommand(_drive));
+    _autoChooser.addOption("barrel race", _barrelRaceCommand.getCommand(_drive));
+    _autoChooser.addOption("bounce path", _bouncePathCommand.getCommand(_drive));
+    _autoChooser.addOption("slalom path", _slalomCommand.getCommand(_drive));
+    SmartDashboard.putData("Auto mode", _autoChooser);
   }
 
   /**
@@ -88,7 +99,7 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An ExampleCommand will run in autonomous
-    return _bouncePathCommand.getCommand(_drive);
+    return _autoChooser.getSelected();
   }
 
   private static double filterControllerInputs(double input) {

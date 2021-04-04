@@ -9,10 +9,15 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class LimelightController extends SubsystemBase {
     private final NetworkTableInstance _instance = NetworkTableInstance.getDefault();
     private final NetworkTable _table = _instance.getTable("limelight");
-    private final PIDController _targetPid = new PIDController(0.04, 0.01, 0);
+    private final PIDController _targetPid = new PIDController(0.05, 0.01, 0);
+
+    public LimelightController() {
+        super();
+        init();
+    }
 
     public void init(){
-        _targetPid.setSetpoint(0);
+        _targetPid.setSetpoint(2);
         _targetPid.setTolerance(0.1);
         SendableRegistry.setName(_targetPid, "limelight Controller", "Target PID");
         turnLightOff();

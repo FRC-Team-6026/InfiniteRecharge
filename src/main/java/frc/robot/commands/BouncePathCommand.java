@@ -10,49 +10,55 @@ import edu.wpi.first.wpilibj.controller.SimpleMotorFeedforward;
 import edu.wpi.first.wpilibj.trajectory.Trajectory;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryUtil;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RamseteCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.Constants;
 import frc.robot.subsystems.Drive;
 
 public class BouncePathCommand {
-    private final Trajectory bounce1 = getTrajectory("paths/output/Bounce1.wpilib.json");
-    private final Trajectory bounce2 = getTrajectory("paths/output/Bounce2.wpilib.json");
-    private final Trajectory bounce3 = getTrajectory("paths/output/Bounce3.wpilib.json");
-    private final Trajectory bounce4 = getTrajectory("paths/output/Bounce4.wpilib.json");
+    private final Trajectory _bounce1 = getTrajectory("paths/output/Bounce1.wpilib.json");
+    private final Trajectory _bounce2 = getTrajectory("paths/output/Bounce2.wpilib.json");
+    private final Trajectory _bounce3 = getTrajectory("paths/output/Bounce3.wpilib.json");
+    private final Trajectory _bounce4 = getTrajectory("paths/output/Bounce4.wpilib.json");
 
     public BouncePathCommand() {
         super();
     }
 
     public Command getCommand(Drive drive) {
-        var bounce1Ramsete = getRamseteCommand(bounce1, drive);
+        var bounce1Ramsete = getRamseteCommand(_bounce1, drive).andThen(() -> drive.tankDriveVolts(0, 0));
 
-        var bounce2Ramsete = getRamseteCommand(bounce2, drive);
+        var bounce2Ramsete = getRamseteCommand(_bounce2, drive).andThen(() -> drive.tankDriveVolts(0, 0));
 
-        var bounce3Ramsete = getRamseteCommand(bounce3, drive);
+        var bounce3Ramsete = getRamseteCommand(_bounce3, drive).andThen(() -> drive.tankDriveVolts(0, 0));
 
-        var bounce4Ramsete = getRamseteCommand(bounce4, drive);
+        var bounce4Ramsete = getRamseteCommand(_bounce4, drive).andThen(() -> drive.tankDriveVolts(0, 0));
 
-        // Reset odometry to the starting pose of the trajectory.
-        drive.resetOdometry(bounce1.getInitialPose());
+        var resetBounce1 = new InstantCommand(() -> {
+            drive.resetOdometry(_bounce1.getInitialPose());
+        });
 
-        // Run path following command, then stop at the end.
-        return bounce1Ramsete.andThen(
-            () -> {
-                drive.tankDriveVolts(0, 0);
-                drive.resetOdometry(bounce2.getInitialPose());
-                bounce2Ramsete.andThen(() -> {
-                    drive.tankDriveVolts(0, 0);
-                    drive.resetOdometry(bounce3.getInitialPose());
-                    bounce3Ramsete.andThen(() -> {
-                        drive.tankDriveVolts(0, 0);
-                        drive.resetOdometry(bounce4.getInitialPose());
-                        bounce4Ramsete.andThen(() -> {
-                            drive.tankDriveVolts(0, 0);
-                        }).execute();;
-                    }).execute();;
-                }).execute();;
-            });
+        var resetBounce2 = new InstantCommand(() -> {
+            drive.resetOdometry(_bounce2.getInitialPose());
+        });
+
+        var resetBounce3 = new InstantCommand(() -> {
+            drive.resetOdometry(_bounce3.getInitialPose());
+        });
+
+        var resetBounce4 = new InstantCommand(() -> {
+            drive.resetOdometry(_bounce4.getInitialPose());
+        });
+
+        return new SequentialCommandGroup(resetBounce1,
+        bounce1Ramsete,
+        resetBounce2,
+        bounce2Ramsete,
+        resetBounce3,
+        bounce3Ramsete,
+        resetBounce4,
+        bounce4Ramsete);
     }
 
     private Trajectory getTrajectory(String trajectoryJson) {

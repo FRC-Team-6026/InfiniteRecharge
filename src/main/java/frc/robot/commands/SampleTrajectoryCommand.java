@@ -13,7 +13,9 @@ import edu.wpi.first.wpilibj.trajectory.TrajectoryConfig;
 import edu.wpi.first.wpilibj.trajectory.TrajectoryGenerator;
 import edu.wpi.first.wpilibj.trajectory.constraint.DifferentialDriveVoltageConstraint;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RamseteCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.Constants;
 import frc.robot.subsystems.Drive;
 
@@ -53,7 +55,7 @@ public class SampleTrajectoryCommand {
             config
         );
 
-        RamseteCommand ramseteCommand = new RamseteCommand(
+        var ramseteCommand = new RamseteCommand(
             exampleTrajectory,
             drive::getPose,
             new RamseteController(Constants.kRamseteB, Constants.kRamseteZeta),
@@ -67,12 +69,14 @@ public class SampleTrajectoryCommand {
             // RamseteCommand passes volts to the callback
             drive::tankDriveVolts,
             drive
-        );
-
-        // Reset odometry to the starting pose of the trajectory.
-        drive.resetOdometry(exampleTrajectory.getInitialPose());
+        ).andThen(() -> drive.tankDriveVolts(0, 0));        
 
         // Run path following command, then stop at the end.
-        return ramseteCommand.andThen(() -> drive.tankDriveVolts(0, 0));
+        var resetOdometry = new InstantCommand(() -> {
+            drive.resetOdometry(exampleTrajectory.getInitialPose());
+        });
+
+        return new SequentialCommandGroup(resetOdometry,
+        ramseteCommand);
     }
 }
