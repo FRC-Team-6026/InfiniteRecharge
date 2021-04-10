@@ -73,9 +73,10 @@ public class RobotContainer {
     var aButton = new JoystickButton(_controller, XboxController.Button.kA.value);
     var startButton = new JoystickButton(_controller, XboxController.Button.kStart.value);
 
-    rightBumper.whileActiveOnce(new InstantCommand(() -> {_conveyor.run(0.4);}, _conveyor), true);
+    rightBumper.whenPressed(new InstantCommand(() -> {_intake.run();}, _intake),true)
+      .whenReleased(new InstantCommand(() -> {_intake.stop();}, _intake), true);
 
-    leftBumper.whenPressed(new InstantCommand(() -> {_intake.run();}, _intake),true)
+    leftBumper.whenPressed(new InstantCommand(() -> {_intake.reverse();}, _intake),true)
       .whenReleased(new InstantCommand(() -> {_intake.stop();}, _intake), true);
 
     aButton.whenPressed(new InstantCommand(() -> {
