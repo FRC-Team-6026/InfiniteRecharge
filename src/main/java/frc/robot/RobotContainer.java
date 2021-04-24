@@ -16,6 +16,7 @@ import frc.robot.commands.SlalomCommand;
 import frc.robot.subsystems.Conveyor;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Lifter;
 import frc.robot.subsystems.LimelightController;
 import frc.robot.subsystems.Shooter;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -42,6 +43,7 @@ public class RobotContainer {
   private final Intake _intake = new Intake();
   private final LimelightController _limeLight = new LimelightController();
   private final DoubleSupplier _limeLightRotationSupplier = () -> _limeLight.trackTarget();
+  private final Lifter _lifter = new Lifter();
 
   private final SampleTrajectoryCommand _sampleTrajectory = new SampleTrajectoryCommand();
   private final BarrelRaceCommand _barrelRaceCommand = new BarrelRaceCommand();
@@ -70,8 +72,10 @@ public class RobotContainer {
   private void configureButtonBindings() {
     var rightBumper = new JoystickButton(_controller, XboxController.Button.kBumperRight.value);
     var leftBumper = new JoystickButton(_controller, XboxController.Button.kBumperLeft.value);
-    var aButton = new JoystickButton(_controller, XboxController.Button.kA.value);
+    var bButton = new JoystickButton(_controller, XboxController.Button.kB.value);
     var startButton = new JoystickButton(_controller, XboxController.Button.kStart.value);
+    var yButton = new JoystickButton(_controller, XboxController.Button.kY.value);
+    var aButton = new JoystickButton(_controller, XboxController.Button.kA.value);
 
     rightBumper.whenPressed(new InstantCommand(() -> {_intake.run();}, _intake),true)
       .whenReleased(new InstantCommand(() -> {_intake.stop();}, _intake), true);
@@ -79,7 +83,7 @@ public class RobotContainer {
     leftBumper.whenPressed(new InstantCommand(() -> {_intake.reverse();}, _intake),true)
       .whenReleased(new InstantCommand(() -> {_intake.stop();}, _intake), true);
 
-    aButton.whenPressed(new InstantCommand(() -> {
+    bButton.whenPressed(new InstantCommand(() -> {
       _intake.moveArms(!_intake.isExtended());
     }, _intake), true);
 
@@ -91,6 +95,18 @@ public class RobotContainer {
         _limeLight.turnLightOff();
         _drive.setRotationSupplier(_xBoxRotationSupplier);
       }), true);
+
+    yButton.whenPressed(new InstantCommand(() -> {
+      _lifter.move(20);
+    }, _lifter), true).whenReleased(new InstantCommand(() -> {
+      _lifter.move(0);
+    }, _lifter), true);
+
+    aButton.whenPressed(new InstantCommand(() -> {
+      _lifter.move(-20);
+    }, _lifter), true).whenReleased(new InstantCommand(() -> {
+      _lifter.move(0);
+    }, _lifter), true);
   }
 
   /**
