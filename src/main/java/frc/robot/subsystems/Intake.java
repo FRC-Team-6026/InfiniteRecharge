@@ -21,8 +21,8 @@ public class Intake extends SubsystemBase {
     private final CANPIDController _omniPID;
     private final Solenoid _arms = new Solenoid(15,0);
     private boolean _isExtended = false;
-    private final double _maxRollerSpeedRpm = 3000;
-    private final double _maxRollerAccelRpm = 1500;
+    private final double _maxRollerSpeedRpm = 4000;
+    private final double _maxRollerAccelRpm = 2000;
 
     public Intake()
     {
