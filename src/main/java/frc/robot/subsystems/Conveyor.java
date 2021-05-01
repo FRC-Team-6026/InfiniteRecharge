@@ -50,7 +50,7 @@ public class Conveyor extends SubsystemBase {
     }
 
     public boolean isBallAtShooterPosition(){
-        return _shooterPhotocell.get();
+        return !_shooterPhotocell.get();
     }
 
     public void run(double percentOutput){

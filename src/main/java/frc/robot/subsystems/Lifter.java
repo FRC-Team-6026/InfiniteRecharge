@@ -3,16 +3,18 @@ package frc.robot.subsystems;
 import com.ctre.phoenix.motorcontrol.LimitSwitchNormal;
 import com.ctre.phoenix.motorcontrol.LimitSwitchSource;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
+import com.ctre.phoenix.motorcontrol.RemoteLimitSwitchSource;
 import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
 import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.TalonFX;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Lifter extends SubsystemBase {
     private static final int _pidLoopIndex = 0;
     private static final int _timeoutMs = 100;
-    private static final double kP = 5e-5;
+    private static final double kP = 5e-2;
     private static final double kI = 0;
     private static final double kD = 0;
     private static final double kF = 0;
@@ -43,8 +45,21 @@ public class Lifter extends SubsystemBase {
 
         _lightSaber.setNeutralMode(NeutralMode.Brake);
 
-        //TODO: figure out if we need to configure reverse or forward limit switch, Verify the type of limit switch
         _lightSaber.configReverseLimitSwitchSource(LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.NormallyClosed);
+        _lightSaber.configForwardLimitSwitchSource(LimitSwitchSource.FeedbackConnector, LimitSwitchNormal.Disabled);
+
+        _lightSaber.setInverted(true);
+
+        _lightSaber.setSelectedSensorPosition(0);
+    }
+
+    @Override
+    public void periodic() {
+        SmartDashboard.putNumber("lifter position", _lightSaber.getSelectedSensorPosition());
+        SmartDashboard.putNumber("lifter velocity", _lightSaber.getSelectedSensorVelocity());
+        if (_lightSaber.getSensorCollection().isRevLimitSwitchClosed() == 0){
+            _lightSaber.setSelectedSensorPosition(0);
+        }
     }
 
     public void move(double mmPerSec){
