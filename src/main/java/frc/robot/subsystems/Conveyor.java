@@ -4,6 +4,7 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.revrobotics.ColorSensorV3;
 
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.RunCommand;
@@ -16,6 +17,7 @@ public class Conveyor extends SubsystemBase {
     private final ColorSensorV3 _colorSensor = new ColorSensorV3(_i2cPort);
     private final VictorSPX _motor = new VictorSPX(2);
     private final BooleanSupplier _shooterIsAtSetPower;
+    private final DigitalInput _shooterPhotocell = new DigitalInput(9);
 
     public Conveyor(BooleanSupplier shooterIsAtSetPower){
         super();
@@ -24,8 +26,8 @@ public class Conveyor extends SubsystemBase {
 
         this.setDefaultCommand(new RunCommand(() ->
         {
-            if (_shooterIsAtSetPower.getAsBoolean() || isBallInLoadingPosition()) {
-                run(0.4);
+            if (_shooterIsAtSetPower.getAsBoolean() || (isBallInLoadingPosition() && !isBallAtShooterPosition())) {
+                run(0.5);
             } else {
                 run(0);
             }
@@ -45,6 +47,10 @@ public class Conveyor extends SubsystemBase {
             return true;
         }
         return false;
+    }
+
+    public boolean isBallAtShooterPosition(){
+        return _shooterPhotocell.get();
     }
 
     public void run(double percentOutput){
