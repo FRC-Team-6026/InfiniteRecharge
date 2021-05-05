@@ -7,11 +7,13 @@ import com.ctre.phoenix.motorcontrol.RemoteLimitSwitchSource;
 import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
 import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.TalonFX;
+import com.revrobotics.ControlType;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Lifter extends SubsystemBase {
+    private static final double _topEncoderPosition = 440000;
     private static final int _pidLoopIndex = 0;
     private static final int _timeoutMs = 100;
     private static final double kP = 5e-2;
@@ -55,8 +57,13 @@ public class Lifter extends SubsystemBase {
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("lifter position", _lightSaber.getSelectedSensorPosition());
-        SmartDashboard.putNumber("lifter velocity", _lightSaber.getSelectedSensorVelocity());
+        var lifterPosition = _lightSaber.getSelectedSensorPosition();
+        var lifterVelocity = _lightSaber.getSelectedSensorVelocity();
+        SmartDashboard.putNumber("lifter position", lifterPosition);
+        SmartDashboard.putNumber("lifter velocity", lifterVelocity);
+        if (lifterPosition > _topEncoderPosition && lifterVelocity > 0){
+            _lightSaber.set(TalonFXControlMode.Velocity, 0);
+        }
         if (_lightSaber.getSensorCollection().isRevLimitSwitchClosed() == 0){
             _lightSaber.setSelectedSensorPosition(0);
         }
@@ -64,6 +71,10 @@ public class Lifter extends SubsystemBase {
 
     public void move(double mmPerSec){
         var pulsesPer100ms = mmPerSec * _mmPerSecToPulsesPer100ms;
-        _lightSaber.set(TalonFXControlMode.Velocity, pulsesPer100ms);
+        if (_lightSaber.getSelectedSensorPosition() > _topEncoderPosition && mmPerSec > 0){
+            _lightSaber.set(TalonFXControlMode.Velocity, 0);
+        }else{
+            _lightSaber.set(TalonFXControlMode.Velocity, pulsesPer100ms);
+        }
     }
 }

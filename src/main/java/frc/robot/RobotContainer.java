@@ -114,7 +114,7 @@ public class RobotContainer {
     }, _lifter), true);
 
     driverAButton.whenPressed(new InstantCommand(() -> {
-      _lifter.move(-200);
+      _lifter.move(-100);
     }, _lifter), true).whenReleased(new InstantCommand(() -> {
       _lifter.move(0);
     }, _lifter), true);
